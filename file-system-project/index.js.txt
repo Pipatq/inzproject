@@ -1,0 +1,53 @@
+// Import libraries
+const express = require('express');
+const dotenv = require('dotenv');
+const mysql = require('mysql2/promise');
+
+// Load environment variables from .env file
+dotenv.config();
+
+// Create an Express application
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Database connection configuration
+const dbConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 3306
+};
+
+// --- API Routes ---
+
+// Basic route to check if the server is running
+app.get('/', (req, res) => {
+    res.send('✅ File System App is running!');
+});
+
+// Route to check database connection status
+app.get('/db-status', async (req, res) => {
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        await connection.ping();
+        await connection.end();
+        res.status(200).json({ status: 'success', message: 'Successfully connected to the database.' });
+    } catch (error) {
+        console.error('Database connection failed:', error);
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Failed to connect to the database.',
+            error: error.message
+        });
+    }
+});
+
+// Start the server
+app.listen(PORT, () => {
+    console.log(`File System server is listening on port ${PORT}`);
+    // A small check to ensure required .env variables are loaded
+    if (!process.env.DB_HOST) {
+        console.warn('WARNING: DB_HOST environment variable is not set. Database connection will fail.');
+    }
+});

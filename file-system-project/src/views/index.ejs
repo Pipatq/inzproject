@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <div class="file-manager">
+        <header class="fm-header">
+            <div class="fm-breadcrumbs">
+                <a href="/" title="Go to SuperProject Menu"><i class="fas fa-th"></i></a>
+                <a href="#" id="login-btn" title="Superadmin Login"><i class="fas fa-cog"></i></a>
+                <span>|</span>
+                <!-- <a href="/files" title="File System Root"><i class="fas fa-home"></i></a> -->
+                  <% // --- Logic สำหรับปุ่มย้อนกลับ ---
+                   let publicBackLink = null;
+                   if (breadcrumbs.length > 1) {
+                       // ถ้าอยู่ในโฟลเดอร์ย่อย ให้ย้อนกลับไปโฟลเดอร์แม่
+                       publicBackLink = `/files/${breadcrumbs[breadcrumbs.length - 2].id}`; 
+                   } else if (breadcrumbs.length === 1) {
+                       // ถ้าอยู่ในโฟลเดอร์ระดับแรก ให้ย้อนกลับไปที่ Root
+                       publicBackLink = `/files`;
+                   }
+                %>
+                
+                <% if (publicBackLink) { %>
+                    <a href="<%= publicBackLink %>?view=<%= view %>" class="back-arrow" title="Go back"><i class="fas fa-arrow-left"></i></a>
+                <% } %>
+
+                <a href="/files" title="File System Root"><i class="fas fa-home"></i></a>
+                <% breadcrumbs.forEach(crumb => { %>
+                    <span>/</span>
+                    <a href="/files/<%= crumb.id %>?view=<%= view %>"><%= crumb.name %></a>
+                <% }); %>
+            </div>
+            <div class="fm-controls">
+                        <div class="fm-search">
+        <input type="search" id="search-input" placeholder="Search files and folders...">
+        <button id="search-btn"><i class="fas fa-search"></i></button>
+    </div>
+                <div class="fm-view-switcher">
+                    <a href="?view=grid" class="<%= view === 'grid' ? 'active' : '' %>" title="Grid View"><i class="fas fa-th-large"></i></a>
+                    <a href="?view=list" class="<%= view === 'list' ? 'active' : '' %>" title="List View"><i class="fas fa-list"></i></a>
+                </div>
+            </div>
+        </header>
+
+        <main class="fm-body">
+            <div class="fm-grid-container <%= view %>-view">
+                <% if (objects.length === 0) { %>
+                    <p class="empty-folder">This folder is empty.</p>
+                <% } %>
+                <% objects.forEach(obj => { %>
+                    <div class="fm-item">
+                        <div class="fm-item-icon">
+                            <% if (obj.is_folder) { %>
+                                <a href="/files/<%= obj.id %>?view=<%= view %>"><i class="fas fa-folder"></i></a>
+                            <% } else if (obj.mimetype && obj.mimetype.startsWith('image/')) { %>
+                                <img src="/preview/<%= obj.id %>" alt="<%= obj.name %>" class="thumbnail-preview">
+                            <% } else if (obj.mimetype === 'application/pdf') { %>
+                                <i class="fas fa-file-pdf"></i>
+                            <% } else { %>
+                                <i class="fas fa-file-alt"></i>
+                            <% } %>
+                        </div>
+                        <div class="fm-item-name" title="<%= obj.name %>">
+                            
+                            <span><%= obj.name %></span>
+                            </div>
+                        <div class="fm-item-details">
+                            <span><%= new Date(obj.updated_at).toLocaleDateString() %></span>
+                            <% if (!obj.is_folder) { %>
+                                <span><%= (obj.size_bytes / 1024).toFixed(1) %> KB</span>
+                            <% } %>
+                        </div>
+                        <div class="fm-item-actions">
+                            <% if (!obj.is_folder) { %>
+                                <a href="/fs-api/download/<%= obj.id %>" class="action-btn download" title="Download"><i class="fas fa-download"></i></a>
+                            <% } %>
+                            </div>
+                    </div>
+                <% }); %>
+            </div>
+        </main>
+    </div>
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <script src="/js/login.js"></script>    
+   <script src="/js/main.js"></script> 
+    <script src="/js/search.js"></script>    
+</body>
+</html>

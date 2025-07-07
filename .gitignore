@@ -1,0 +1,13 @@
+# Ignore the entire database data directory
+/database/billing_db_data/
+/database/files_db_data/
+/database
+
+# Ignore any .sock files
+*.sock
+
+# Ignore the embedded git repository
+/billing-system-project/
+
+# Optional: It's good practice to ignore local certificates
+/certs/

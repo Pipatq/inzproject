@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - Select System</title>
+    <style>
+        /* --- การตั้งค่าพื้นฐาน --- */
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            display: grid;
+            place-items: center;
+            background-color: #f0f2f5;
+        }
+
+        /* --- กล่องหลัก --- */
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 50px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        /* --- หัวข้อ --- */
+        h1 {
+            color: #1c1e21;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        p {
+            color: #606770;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        /* --- กล่องสำหรับวางการ์ด --- */
+        .system-selector {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+        }
+
+        /* --- การ์ดแต่ละระบบ --- */
+        .system-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 220px;
+            height: 180px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 600;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .system-card .icon {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .system-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        /* --- สีของการ์ดแต่ละระบบ --- */
+        .billing-system {
+            background: linear-gradient(145deg, #007bff, #0056b3);
+        }
+
+        .file-system {
+            background: linear-gradient(145deg, #28a745, #1e7e34);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome</h1>
+        <p>Please select a system to continue</p>
+        <div class="system-selector">
+            <!-- การ์ดสำหรับระบบ Billing -->
+            <a href="/billing/" class="system-card billing-system">
+                <div class="icon">🧾</div>
+                <span>Billing</span>
+            </a>
+            
+            <!-- การ์ดสำหรับระบบ File System -->
+            <a href="/files/" class="system-card file-system">
+                <div class="icon">📂</div>
+                <span>File System</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

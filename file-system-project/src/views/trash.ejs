@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <div class="file-manager">
+        <header class="fm-header">
+            <div class="fm-breadcrumbs">
+                <a href="/admin" class="back-arrow" title="Back to Files"><i class="fas fa-arrow-left"></i></a>
+                <i class="fas fa-trash"></i>
+                <span>Trash</span>
+            </div>
+            <% if (trashItems.length > 0) { %>
+            <div class="fm-controls">
+                 <form action="/fs-api/empty-trash" method="post" id="empty-trash-form">
+                    <button type="submit" class="empty-trash-btn"><i class="fas fa-times-circle"></i> Empty Trash</button>
+                </form>
+            </div>
+            <% } %>
+        </header>
+
+        <main class="fm-body">
+            <div class="fm-grid-container list-view">
+                <% if (trashItems.length === 0) { %>
+                    <p class="empty-folder">The trash is empty.</p>
+                <% } %>
+                <% trashItems.forEach(obj => { %>
+                    <div class="fm-item">
+                        <div class="fm-item-icon">
+                            <i class="fas <%= obj.is_folder ? 'fa-folder' : 'fa-file-alt' %>"></i>
+                        </div>
+                        <div class="fm-item-name" title="<%= obj.name %>">
+                            <%= obj.name %>
+                        </div>
+                        <div class="fm-item-details">
+                            <span>Deleted: <%= new Date(obj.deleted_at).toLocaleDateString() %></span>
+                        </div>
+                        <div class="fm-item-actions">
+                            <form action="/fs-api/restore/<%= obj.id %>" method="post">
+                                <button type="submit" class="action-btn restore" title="Restore"><i class="fas fa-undo"></i></button>
+                            </form>
+                            <form action="/fs-api/perm-delete/<%= obj.id %>" method="post" class="delete-form">
+                                <button type="submit" class="action-btn delete" title="Delete Permanently"><i class="fas fa-trash-alt"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>
