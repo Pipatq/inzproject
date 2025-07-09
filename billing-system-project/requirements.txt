@@ -1,0 +1,12 @@
+Flask
+waitress
+Flask-SQLAlchemy
+PyMySQL
+python-dotenv
+Flask-Login
+Flask-Bcrypt
+pandas
+pytz
+gunicorn
+mysql-connector-python
+PyJWT

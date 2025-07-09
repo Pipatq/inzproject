@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Edit Transaction - Billing System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.0/dist/signature_pad.umd.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet"> -->
+
+    <style>
+        /* Styles for Print */
+        @media print {
+            .no-print { display: none !important; }
+            body > *:not(.print-area) { display: none !important; }
+            .print-area {
+                display: block !important;
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: auto;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 5mm;
+            }
+            .print-area#receipt {
+                box-sizing: border-box;
+                padding: 5mm;
+                font-family: 'Prompt', sans-serif;
+                font-size: 10pt;
+                line-height: 1.3;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                min-height: 277mm; /* A4 height - margins */
+            }
+            .print-area#receipt h2 { font-size: 18pt; text-align: center; margin-bottom: 0.2em; }
+            .print-area#receipt hr { border-top: 1px solid #000; margin: 0.3em 0; }
+            .print-area#receipt p { margin-bottom: 0.1em; line-height: 1.2; }
+            .print-area#receipt .receipt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0.5em 0; }
+            .print-area#receipt h4 { font-size: 12pt; margin-bottom: 0.2em; }
+            .print-area#receipt h3 { font-size: 14pt; margin-top: 0.8em; margin-bottom: 0.3em; }
+            .print-area#receipt table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 0.5em; }
+            .print-area#receipt th, .print-area#receipt td { border: 1px solid #ccc; padding: 4px; text-align: left; }
+            .print-area#receipt th { font-weight: bold; }
+            .print-area#receipt .receipt-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1em; page-break-inside: avoid; }
+            .print-area#receipt .payment-details h4 { font-size: 11pt; margin-bottom: 0.3em; }
+            .print-area#receipt .receipt-summary-table td { border: none; padding: 2px 0; }
+            .print-area#receipt .receipt-summary-table td:last-child { text-align: right; }
+            .print-area#receipt .signature-group { display: flex; justify-content: space-between; margin-top: 1em; font-size: 9pt; }
+            .print-area#receipt .signature { text-align: center; flex: 1; }
+            .print-area#receipt .signature-img { max-width: 150px; max-height: 50px; margin-bottom: 0.2em; display: block; margin-left: auto; margin-right: auto; }
+            .print-area#receipt .receipt-note { margin-top: 1em; font-size: 9pt; page-break-inside: avoid; }
+            .print-area#receipt .receipt-document-footer { position: absolute; bottom: 0; left: 10mm; right: 10mm; display: flex; justify-content: space-between; font-size: 8pt; color: #555; border-top: 1px solid #ccc; padding-top: 3px; }
+            .page-break-after-item { page-break-after: always; break-after: page; height: 0; display: block; }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="page-header no-print">
+        <h1 class="system-title">Edit Transaction: <span id="txnIdHeader"></span></h1>
+    </header>
+
+    <div class="main-container">
+        <div id="edit-form-container" class="tab active">
+
+            <div class="section">
+                <h2>ข้อมูลผู้ป่วย</h2>
+                <div class="form-grid patient-info-grid">
+                    <div class="form-group">
+                        <label for="firstName">ชื่อจริง:</label>
+                        <input type="text" id="firstName" placeholder="ชื่อจริง" autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">นามสกุล:</label>
+                        <input type="text" id="lastName" placeholder="นามสกุล">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">เพศ:</label>
+                        <select id="gender">
+                            <option value="">-- ระบุเพศ --</option>
+                            <option value="ชาย">ชาย</option>
+                            <option value="หญิง">หญิง</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="patientHN">HN (เลขประจำตัวคนไข้)</label>
+                        <input type="text" id="patientHN" placeholder="ตัวอย่าง: 12-34-567890" maxlength="12">
+                    </div>
+                    <div class="form-group">
+                        <label for="patientType">ประเภทผู้ป่วย:</label>
+                        <select id="patientType">
+                            <option value="opd">OPD (ผู้ป่วยนอก)</option>
+                            <option value="ipd">IPD (ผู้ป่วยใน)</option>
+                            <option value="foreign_opd">ผู้ป่วยนอกต่างชาติ</option>
+                            <option value="foreign_ipd">ผู้ป่วยในต่างชาติ</option>
+                            <option value="staff">พนักงาน</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="patientAge">อายุ:</label>
+                        <input type="number" id="patientAge" placeholder="อายุ (ปี)" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="doctorName">ชื่อแพทย์:</label>
+                        <select id="doctorName">
+                            <option value="">-- เลือกแพทย์ --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="consultant">ผู้ให้คำปรึกษา:</label>
+                        <select id="consultant">
+                            <option value="">-- เลือกผู้ให้คำปรึกษา --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Courses & Packages</h2>
+                <div class="search-container" style="margin-top: 20px;">
+                    <div class="quick-search-buttons">
+                        <button type="button" class="quick-search-btn" onclick="quickSearch('IV')">IV</button>
+                        <button type="button" class="quick-search-btn" onclick="quickSearch('Syringe')">Syringe</button>
+                        <button type="button" class="quick-search-btn" onclick="quickSearch('Gauze')">Gauze</button>
+                        <button type="button" class="quick-search-btn" onclick="quickSearch('Alcohol')">Alcohol</button>
+                        <button type="button" class="quick-search-btn" onclick="quickSearch('แพ็คเกจ')">แพ็คเกจ</button>
+                    </div>
+                    <div class="search-input-container">
+                        <input type="text" id="searchProduct" placeholder="ค้นหาสินค้าด้วยชื่อ หรือรหัส..." oninput="searchProducts()" autocomplete="off">
+                        <button type="button" class="clear-search" onclick="clearSearch()">×</button>
+                    </div>
+                    <div id="searchResults" style="border: 1px solid #ddd; max-height: 200px; overflow-y: auto; margin-top: 5px;"></div>
+                </div>
+                <div id="cart">
+                    <h3>แพ็คเกจในบิล</h3>
+                    <table id="cartTable">
+                        <thead>
+                            <tr>
+                                <th>สินค้า</th>
+                                <th>รหัสสินค้า</th>
+                                <th>ราคา</th>
+                                <th>จำนวน</th>
+                                <th>รวม</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cartItems"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" style="text-align: right;"><strong>ยอดรวมสินค้า:</strong></td>
+                                <td id="cartTotal">0.00 บาท</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>การเรียกเก็บและชำระเงิน</h2>
+                <div class="form-grid billing-grid">
+                    <div class="form-group">
+                        <label for="depositAmount">เงินมัดจำที่ชำระ:</label>
+                        <input type="number" id="depositAmount" placeholder="0.00" value="0" oninput="updateBillingSummary()">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>วิธีชำระเงิน:</label>
+                        <div class="checkbox-group">
+                            <input type="radio" id="payCash" name="paymentMethod" value="เงินสด"> <label for="payCash">เงินสด</label>
+                            <input type="radio" id="payTransfer" name="paymentMethod" value="เงินโอน"> <label for="payTransfer">เงินโอน</label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>สถานะรีวิว:</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="statusDeposit" name="reviewStatus" value="มัดจำ"> <label for="statusDeposit">มัดจำ</label>
+                            <input type="checkbox" id="statusEye" name="reviewStatus" value="ทำตา"> <label for="statusEye">ทำตา</label>
+                            <input type="checkbox" id="statusReview" name="reviewStatus" value="รีวิว"> <label for="statusReview">รีวิว</label>
+                            <input type="checkbox" id="statusNoReview" name="reviewStatus" value="ไม่รีวิว"> <label for="statusNoReview">ไม่รีวิว</label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="comment">หมายเหตุ:</label>
+                        <textarea id="comment" rows="3" placeholder="เพิ่มหมายเหตุเพิ่มเติม..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section signature-sections-row">
+                <div class="signature-column">
+                    <h2 class="signature-title-inline">ลายเซ็นผู้ให้คำปรึกษา</h2>
+                    <div class="signature-pad-group">
+                        <label for="consultantSignatureCanvas">ลงลายเซ็นใหม่ (หากต้องการเปลี่ยน):</label>
+                        <img id="consultantSignaturePreview" class="signature-preview" alt="Consultant Signature Preview" style="border: 1px dashed #ccc; min-height: 50px; max-width: 400px; display: none; margin-bottom: 10px;">
+                        <canvas id="consultantSignatureCanvas" width="400" height="250"></canvas>
+                        <div class="signature-buttons">
+                            <button type="button" class="secondary" onclick="clearSignature('consultant')">ล้างลายเซ็น</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="signature-column">
+                    <h2 class="signature-title-inline">ลายเซ็นผู้ป่วย</h2>
+                    <div class="signature-pad-group">
+                        <label for="patientSignatureCanvas">ลงลายเซ็นใหม่ (หากต้องการเปลี่ยน):</label>
+                        <img id="patientSignaturePreview" class="signature-preview" alt="Patient Signature Preview" style="border: 1px dashed #ccc; min-height: 50px; max-width: 400px; display: none; margin-bottom: 10px;">
+                        <canvas id="patientSignatureCanvas" width="400" height="250"></canvas>
+                        <div class="signature-buttons">
+                            <button type="button" class="secondary" onclick="clearSignature('patient')">ล้างลายเซ็น</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="billingSummary">
+                <h4>สรุปยอดชำระ</h4>
+                <hr>
+                <p><strong><span>ยอดรวมทั้งหมด:</span> <span id="summaryGrandTotal">0.00 บาท</span></strong></p>
+                <p><span>- เงินมัดจำที่ชำระ:</span> <span id="summaryDeposit">0.00 บาท</span></p>
+                <hr>
+                <p><strong><span>ยอดค้างชำระ:</span> <span id="summaryOutstanding">0.00 บาท</span></strong></p>
+            </div>
+
+            <div class="section">
+                <h2>เหตุผลในการแก้ไข (สำคัญ)</h2>
+                <div class="form-group">
+                    <label for="changeReason">กรุณาระบุเหตุผลที่ทำการแก้ไขข้อมูล:</label>
+                    <textarea id="changeReason" rows="3" placeholder="เช่น ผู้ป่วยขอเพิ่มรายการ..." required></textarea>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;" class="no-print">
+                 <button type="button" class="secondary" onclick="window.location.href='/billing/'">
+                    <i class="fas fa-times"></i> ยกเลิก
+                </button>
+                <button type="button" class="btn-print" onclick="printReceipt()">
+                    <i class="fas fa-print"></i> พิมพ์ใบเสร็จ
+                </button>
+                <button type="button" class="btn-save" onclick="saveChanges()"> 
+                    <i class="fas fa-save"></i> บันทึกการเปลี่ยนแปลง
+                </button>
+            </div>
+
+            <hr style="margin: 40px 0;">
+
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>ตัวอย่างใบประเมินราคา</h2>
+                    <div id="version-selector-container"></div>
+                </div>
+                <div id="receiptPreviewContainer" class="receipt-preview-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="receipt" class="print-area">
+        <div class="receipt-body">
+            <h2>ใบประเมินราคา</h2>
+            <hr>
+            <p><strong>รหัสใบเสร็จ:</strong> <span data-field="receiptId"></span> | <strong>วันที่:</strong> <span data-field="receiptDate"></span></p>
+            <div class="receipt-grid">
+                <div>
+                    <h4>รายละเอียดผู้ป่วย</h4>
+                    <p><strong>ชื่อ:</strong> <span data-field="receiptName"></span></p>
+                    <p><strong>HN:</strong> <span data-field="receiptHN"></span></p>
+                    <p><strong>อายุ:</strong> <span data-field="receiptAge"></span></p>
+                    <p><strong>ประเภท:</strong> <span data-field="receiptType"></span></p>
+                    <p><strong>เพศ:</strong> <span data-field="receiptGender"></span></p>
+                </div>
+                <div>
+                    <h4>รายละเอียดการรักษา</h4>
+                    <p><strong>แพทย์:</strong> <span data-field="receiptDoctor"></span></p>
+                    <p><strong>ผู้ให้คำปรึกษา:</strong> <span data-field="receiptConsultant"></span></p>
+                </div>
+            </div>
+            <h3>รายการ & ค่าใช้จ่าย</h3>
+            <table id="receiptItemsTable_print">
+                <thead>
+                    <tr>
+                        <th>รายการ</th>
+                        <th>รหัสสินค้า</th>
+                        <th>ราคา</th>
+                        <th>จำนวน</th>
+                        <th>รวม</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="receipt-footer">
+            <div class="payment-info">
+                <h4>ข้อมูลการชำระเงิน</h4>
+                <p><strong>วิธีชำระเงิน:</strong> <span data-field="receiptPaymentMethod"></span></p>
+                <p><strong>สถานะรีวิว:</strong> <span data-field="receiptReviewStatus"></span></p>
+                <p><strong>หมายเหตุ:</strong> <span data-field="comment"></span></p>
+                <div class="signature-group" style="margin-top: 30px;">
+                    <div class="signature" style="margin-bottom: 5px;">
+                        <img data-field="receiptPatientSignature" src="" alt="Patient's Signature" class="signature-img">
+                        <p style="margin: 0;">...............................</p>
+                        <p>ลายเซ็นผู้ป่วย</p>
+                    </div>
+                    <div class="signature consultant-signature-print">
+                        <img data-field="receiptConsultantSignature" src="" alt="Consultant's Signature" class="signature-img">
+                        <p style="margin: 0;">...............................</p>
+                        <p>ลายเซ็นผู้ให้คำปรึกษา</p>
+                    </div>
+                </div>
+            </div>
+            <div class="payment-details">
+                <h4>รายละเอียดการชำระเงิน</h4>
+                <table class="receipt-summary-table">
+                    <tbody>
+                        <tr>
+                            <td>ยอดรวมสินค้า:</td>
+                            <td><span data-field="receiptSubtotal">0.00</span> บาท</td>
+                        </tr>
+                        <tr style="font-weight: bold; border-top: 1px solid #333; border-bottom: 1px solid #333;">
+                            <td>ยอดรวมทั้งหมด:</td>
+                            <td><span data-field="receiptGrandTotal">0.00</span> บาท</td>
+                        </tr>
+                        <tr style="font-weight: bold;">
+                            <td>เงินมัดจำที่ชำระ:</td>
+                            <td><span data-field="receiptDeposit">0.00</span> บาท</td>
+                        </tr>
+                        <tr style="font-weight: bold; font-size: 1.1em; color: #c0392b;">
+                            <td>ยอดค้างชำระ:</td>
+                            <td><span data-field="receiptOutstanding">0.00</span> บาท</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="receipt-note">
+            <p><strong>หมายเหตุ:</strong></p>
+            <ul>
+                <li>กรุณาตรวจสอบรายการให้ถูกต้อง</li>
+                <li>ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อมีลายเซ็นผู้รับเงินครบถ้วน</li>
+                <li>เวลาทำการ: ทุกวัน 08.00 - 20.00 น.</li>
+                <li>ช่องทางการติดต่อสอบถาม 02-055-8888</li>
+            </ul>
+        </div>
+        <div class="receipt-document-footer">
+            <span data-field="footerText">inZ Hospital</span>
+            <span data-field="footerPage">โรงพยาบาลเฉพาะทางจักษุ</span>
+        </div>
+    </div>
+
+    <script>
+        // Pass the transaction ID from Flask to a global JavaScript variable
+        const TRANSACTION_ID = "{{ transaction_id|safe }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/edit.js') }}"></script>
+</body>
+</html>

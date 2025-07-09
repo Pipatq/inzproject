@@ -1,0 +1,18 @@
+# .dockerignore
+
+# ไม่ต้องสนใจโฟลเดอร์ที่เก็บข้อมูลของ MySQL
+docker/mysql/data
+
+# ไม่ต้องสนใจโฟลเดอร์ virtual environment ของ Python
+venv
+.venv
+
+# ไม่ต้องสนใจไฟล์ cache ของ Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ไม่ต้องสนใจโฟลเดอร์ของ Code Editor
+.vscode/
+.idea/

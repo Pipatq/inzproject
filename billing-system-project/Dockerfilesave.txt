@@ -1,0 +1,26 @@
+# Dockerfile for Billing System (Corrected for Final Structure)
+
+# 1. Start from the official Python image
+FROM python:3.12.1-slim-bookworm
+
+# 2. Set the working directory
+WORKDIR /app
+
+# 3. Copy requirements and install dependencies first for caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 4. Copy the entire project context (including the 'app' package and main.py)
+COPY . .
+
+# --- DEBUGGING STEP ---
+# List the files in the working directory to make sure main.py is there.
+# The output of this command will be visible during the 'docker-compose build' process.
+RUN ls -la
+
+# 5. Expose the internal port
+EXPOSE 5000
+
+# 6. The command to run the application.
+#    Gunicorn will find the 'main.py' file and the 'app' object within it.
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]

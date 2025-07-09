@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Data from CSV</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .import-container { max-width: 800px; margin: 3rem auto; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        select, input[type="file"] { width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; }
+        .feedback-message { padding: 1rem; margin-top: 1.5rem; border-radius: 4px; text-align: center; font-weight: 500; }
+        .feedback-message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .feedback-message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .btn-link { display: inline-block; margin-left: 1rem; color: #007bff; text-decoration: none; vertical-align: middle; }
+        .btn-link:hover { text-decoration: underline; }
+        
+        /* --- CSS ที่เพิ่มเข้ามาใหม่ --- */
+        #template-info {
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        #template-info h4 {
+            margin-top: 0;
+            border-bottom: 1px solid #adb5bd;
+            padding-bottom: 0.5rem;
+        }
+        #template-info pre {
+            background-color: #343a40;
+            color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="import-container">
+        <h1><i class="fas fa-file-import"></i> Import Data from CSV</h1>
+        <p>ระบบนี้ใช้สำหรับนำเข้าข้อมูลจากไฟล์ CSV กรุณาตรวจสอบว่าชื่อคอลัมน์ในไฟล์ CSV ของคุณตรงกับที่ระบบต้องการสำหรับตารางนั้นๆ</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="feedback-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <hr style="margin: 2rem 0;">
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="target_table">1. เลือกตารางปลายทาง:</label>
+                <select name="target_table" id="target_table" required>
+                    <option value="staff">Staff (ข้อมูลพนักงาน/แพทย์)</option>
+                    <option value="items">Items (ข้อมูลสินค้า/บริการ)</option>
+                </select>
+            </div>
+
+            <div id="template-info">
+                <h4>รูปแบบ CSV ที่ต้องการ:</h4>
+                <pre id="csv-format-display">กรุณาเลือกตาราง...</pre>
+                <a href="#" id="download-link" class="btn-link"><i class="fas fa-download"></i> Download Template</a>
+            </div>
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label for="csv_file">2. เลือกไฟล์ .csv ที่ต้องการนำเข้า:</label>
+                <input type="file" name="csv_file" id="csv_file" accept=".csv" required>
+            </div>
+
+            <button type="submit" class="btn">Import Data</button>
+            <a href="{{ url_for('main.crud_page') }}" class="btn-link">← กลับไปหน้าจัดการข้อมูล</a>
+        </form>
+    </div>
+
+<script>
+    // รับข้อมูลโครงสร้าง Header ที่ส่งมาจาก Flask
+    const expectedHeaders = {{ expected_headers_json|safe }};
+
+    // ตัวอย่างข้อมูลสำหรับแสดงผล
+    const sampleData = {
+        staff: { staff_id: 'S001', name_th: 'สมชาย ใจดี', name_en: 'Somchai Jaidee', staff_role: 'Doctor' },
+        items: { item_code: 'ITM-001', name_th: 'ยาแก้ปวด', price_opd: 50, price_ipd: 60, price_foreign_opd: 100, price_foreign_ipd: 120, price_staff: 25 }
+    };
+
+    const tableSelector = document.getElementById('target_table');
+    const displayArea = document.getElementById('csv-format-display');
+    const downloadLink = document.getElementById('download-link');
+
+    function updateTemplateDisplay() {
+        const selectedTable = tableSelector.value;
+        
+        if (expectedHeaders[selectedTable]) {
+            const headers = expectedHeaders[selectedTable];
+            const sample = sampleData[selectedTable];
+
+            // สร้าง String ของ Header และ Sample Row
+            const headerString = headers.join(',');
+            const sampleRowString = headers.map(h => sample[h]).join(',');
+
+            // แสดงผลใน <pre>
+            displayArea.textContent = `${headerString}\n${sampleRowString}`;
+            
+            // อัปเดตลิงก์ดาวน์โหลด
+            downloadLink.href = `/download-template/${selectedTable}`;
+            downloadLink.style.display = 'inline-block';
+        } else {
+            displayArea.textContent = 'ไม่พบข้อมูลสำหรับตารางนี้';
+            downloadLink.style.display = 'none';
+        }
+    }
+
+    // เรียกใช้ฟังก์ชันครั้งแรกเมื่อหน้าโหลดเสร็จ
+    document.addEventListener('DOMContentLoaded', updateTemplateDisplay);
+
+    // เรียกใช้ฟังก์ชันทุกครั้งที่มีการเปลี่ยนค่าใน Dropdown
+    tableSelector.addEventListener('change', updateTemplateDisplay);
+</script>
+</body>
+</html>
