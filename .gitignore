@@ -6,8 +6,3 @@
 # Ignore any .sock files
 *.sock
 
-# Ignore the embedded git repository
-/billing-system-project/
-
-# Optional: It's good practice to ignore local certificates
-/certs/
