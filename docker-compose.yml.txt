@@ -1,0 +1,151 @@
+
+# ===================================================================
+# docker-compose.yml (Production Ready with Separated Databases)
+# ===================================================================
+# version:
+
+services:
+  # === 1. Gateway Service (Nginx) ===
+  gateway:
+    image: nginx:1.21-alpine
+    container_name: main_gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./gateway/index.html:/usr/share/nginx/html/index.html
+      - ./certs:/etc/nginx/certs
+    networks:
+      - app-network
+    depends_on:
+      billing_app:
+        condition: service_started
+      file_system_app:
+        condition: service_started
+
+  # === 2. Billing App Service (Python) ===
+  billing_app:
+    build: ./billing-system-project
+    container_name: billing_app_python
+    restart: always
+    # No public ports needed, access is via Gateway
+    volumes:
+      - ./billing-system-project:/app
+    env_file:
+      - ./billing-system-project/.env
+    environment:
+      # Ensure your .env file or this line points to the correct DB host
+      - DB_HOST=billing_db
+    networks:
+      - app-network
+    depends_on:
+      billing_db:
+        condition: service_healthy
+
+  # === 3. File System App Service (Node.js) ===
+  file_system_app:
+    build: ./file-system-project
+    container_name: file_system_app_node
+    restart: unless-stopped
+    # No public ports needed, access is via Gateway
+    volumes:
+      - ./file-system-project:/app
+      - /app/node_modules
+    env_file:
+      - ./file-system-project/.env
+    environment:
+      # Ensure your .env file or this line points to the correct DB host
+      - DB_HOST=file_db
+    networks:
+      - app-network
+    depends_on:
+      file_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"] # <--- สมมติว่า port ภายในคือ 3000
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  # === 4. Database for Billing System ===
+  billing_db:
+    image: mysql:8.0
+    container_name: billing_db_mysql
+    restart: unless-stopped
+    command: --default-time-zone='+07:00'
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./database/billing_db_data/data:/var/lib/mysql
+      - ./database/billing_db_data/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      # Port for direct connection during development/debugging
+      - "33066:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # === 5. Database for File System (NEW) ===
+  file_db:
+    image: mysql:8.0
+    container_name: file_db_mysql
+    restart: unless-stopped
+    command: --default-time-zone='+07:00'
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD} # Using the same password for simplicity
+    volumes:
+      - ./database/file_db_data/data:/var/lib/mysql
+      - ./database/file_db_data/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      # Using a different port to avoid conflicts with billing_db
+      - "33067:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # === 6. phpMyAdmin for Billing DB ===
+  billing_phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: billing_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: billing_db
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - app-network
+    depends_on:
+      - billing_db
+
+  # === 7. phpMyAdmin for File DB (NEW) ===
+  file_phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: file_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    environment:
+      PMA_HOST: file_db
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - app-network
+    depends_on:
+      - file_db
+
+# === Define the shared network ===
+networks:
+  app-network:
+    driver: bridge
